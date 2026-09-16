@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}New client{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>New client intake</h1>
+  <form method="post" action="/clients">
+    <label>Full name
+      <input type="text" name="name" required />
+    </label>
+    <label>Date of birth
+      <input type="date" name="date_of_birth" />
+    </label>
+    <label>Marital status
+      <select name="marital_status">
+        <option value="">Select…</option>
+        <option>Single</option>
+        <option>Married</option>
+        <option>Divorced</option>
+        <option>Widowed</option>
+        <option>Domestic partnership</option>
+      </select>
+    </label>
+    <label>Governing state / jurisdiction
+      <input type="text" name="state" placeholder="e.g. California" />
+    </label>
+    <label>Notes
+      <textarea name="notes" rows="3"></textarea>
+    </label>
+    <button type="submit">Create client</button>
+  </form>
+</div>
+{% endblock %}

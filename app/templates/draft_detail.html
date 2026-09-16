@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Draft — {{ draft.doc_type.value }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{{ draft.doc_type.value | replace('_', ' ') | title }}</h1>
+  <div class="meta">
+    <a href="/clients/{{ draft.client_id }}">&larr; back to client</a>
+    &middot; <span class="badge badge-{{ draft.status.value }}">{{ draft.status.value }}</span>
+    &middot; v{{ draft.version }}
+  </div>
+</div>
+
+<section class="card">
+  <div class="section-header">
+    <h2>Status</h2>
+    <div class="button-row">
+      {% for target in next_statuses %}
+        {% set locked = target in attorney_only_targets and user.role.value != 'attorney' %}
+        <form method="post" action="/drafts/{{ draft.id }}/status" style="display:inline">
+          <input type="hidden" name="target" value="{{ target.value }}" />
+          <button type="submit" {% if locked %}disabled title="Attorney role required"{% endif %}>
+            Move to {{ target.value | replace('_', ' ') }}{% if locked %} (attorney only){% endif %}
+          </button>
+        </form>
+      {% endfor %}
+      <form method="post" action="/drafts/{{ draft.id }}/risk-check" style="display:inline">
+        <button type="submit">Re-run risk check</button>
+      </form>
+    </div>
+  </div>
+  {% if draft.reviewed_by %}<p class="hint">Last reviewed at {{ draft.reviewed_at.strftime('%Y-%m-%d %H:%M') }} UTC.</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>Draft content</h2>
+  <pre class="generated-text draft-content">{{ draft.content }}</pre>
+</section>
+
+<section class="card">
+  <h2>Risk flags for this draft</h2>
+  {% if risk_flags %}
+  <table class="data-table">
+    <thead><tr><th>Category</th><th>Severity</th><th>Description</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+      {% for f in risk_flags %}
+      <tr>
+        <td>{{ f.category.value }}</td>
+        <td><span class="badge badge-{{ f.severity.value }}">{{ f.severity.value }}</span></td>
+        <td>{{ f.description }}</td>
+        <td>{{ f.status.value }}{% if f.resolution_note %} — {{ f.resolution_note }}{% endif %}</td>
+        <td>
+          {% if f.status.value == 'open' %}
+          <form method="post" action="/risk-flags/{{ f.id }}/resolve" class="inline-form-tiny">
+            <input type="text" name="resolution_note" placeholder="Resolution note" />
+            <button type="submit" {% if user.role.value != 'attorney' %}disabled title="Attorney role required"{% endif %}>Resolve</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty-state">No risk flags for this draft.</p>
+  {% endif %}
+</section>
+{% endblock %}

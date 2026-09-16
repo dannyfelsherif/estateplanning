@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}{{ client.name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{{ client.name }}</h1>
+  <div class="meta">
+    {{ client.state or 'No jurisdiction set' }} &middot; {{ client.marital_status or 'Marital status unknown' }}
+    {% if open_flag_count %}<span class="badge badge-high">{{ open_flag_count }} open risk flag{{ 's' if open_flag_count != 1 else '' }}</span>{% endif %}
+  </div>
+</div>
+
+<section class="card" id="summary">
+  <div class="section-header">
+    <h2>Advisor summary</h2>
+    <form method="post" action="/clients/{{ client.id }}/summary">
+      <button type="submit">{{ 'Regenerate' if client.summary else 'Generate' }} summary</button>
+    </form>
+  </div>
+  {% if client.summary %}
+    <pre class="generated-text">{{ client.summary }}</pre>
+  {% else %}
+    <p class="empty-state">No summary generated yet. Add family, assets, and goals below, then generate one.</p>
+  {% endif %}
+</section>
+
+<section class="card" id="family">
+  <h2>Family</h2>
+  <table class="data-table">
+    <thead><tr><th>Name</th><th>Relationship</th><th>DOB</th><th>Dependent</th><th>Notes</th></tr></thead>
+    <tbody>
+      {% for fm in client.family_members %}
+      <tr><td>{{ fm.name }}</td><td>{{ fm.relationship_ }}</td><td>{{ fm.date_of_birth or '—' }}</td><td>{{ 'Yes' if fm.is_dependent else 'No' }}</td><td>{{ fm.notes or '' }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <details><summary>+ Add family member</summary>
+    <form method="post" action="/clients/{{ client.id }}/family" class="inline-form">
+      <input type="text" name="name" placeholder="Name" required />
+      <input type="text" name="relationship" placeholder="Relationship (e.g. spouse, child)" required />
+      <input type="date" name="date_of_birth" />
+      <label class="checkbox"><input type="checkbox" name="is_dependent" value="true" /> Dependent</label>
+      <input type="text" name="notes" placeholder="Notes" />
+      <button type="submit">Add</button>
+    </form>
+  </details>
+</section>
+
+<section class="card" id="assets">
+  <h2>Assets</h2>
+  <table class="data-table">
+    <thead><tr><th>Category</th><th>Description</th><th>Est. value</th><th>Ownership</th><th>Beneficiary designation</th></tr></thead>
+    <tbody>
+      {% for a in client.assets %}
+      <tr><td>{{ a.category }}</td><td>{{ a.description }}</td><td>{{ '$%.2f'|format(a.estimated_value) if a.estimated_value is not none else '—' }}</td><td>{{ a.ownership or '—' }}</td><td>{{ a.beneficiary_designation or '—' }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <details><summary>+ Add asset</summary>
+    <form method="post" action="/clients/{{ client.id }}/assets" class="inline-form">
+      <select name="category" required>
+        <option value="real_estate">Real estate</option>
+        <option value="bank">Bank account</option>
+        <option value="investment">Investment account</option>
+        <option value="retirement">Retirement account</option>
+        <option value="business">Business interest</option>
+        <option value="life_insurance">Life insurance</option>
+        <option value="personal_property">Personal property</option>
+        <option value="digital">Digital asset</option>
+      </select>
+      <input type="text" name="description" placeholder="Description" required />
+      <input type="number" step="0.01" name="estimated_value" placeholder="Estimated value" />
+      <input type="text" name="ownership" placeholder="Ownership (sole/joint/trust)" />
+      <input type="text" name="beneficiary_designation" placeholder="Beneficiary designation" />
+      <button type="submit">Add</button>
+    </form>
+  </details>
+</section>
+
+<section class="card" id="goals">
+  <h2>Goals</h2>
+  <ul class="goal-list">
+    {% for g in client.goals %}<li>{{ g.description }}</li>{% endfor %}
+  </ul>
+  <details><summary>+ Add goal</summary>
+    <form method="post" action="/clients/{{ client.id }}/goals" class="inline-form">
+      <input type="text" name="description" placeholder="e.g. Avoid probate, provide for minor children" required />
+      <button type="submit">Add</button>
+    </form>
+  </details>
+</section>
+
+<section class="card" id="documents">
+  <h2>Uploaded documents</h2>
+  {% if client.documents %}
+  <table class="data-table">
+    <thead><tr><th>Filename</th><th>Type</th><th>Uploaded</th></tr></thead>
+    <tbody>
+      {% for d in client.documents %}
+      <tr class="clickable-row" onclick="window.location='/documents/{{ d.id }}'">
+        <td>{{ d.filename }}</td><td>{{ d.doc_type.value }}</td><td>{{ d.uploaded_at.strftime('%Y-%m-%d') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty-state">No documents uploaded yet.</p>
+  {% endif %}
+  <details><summary>+ Upload document</summary>
+    <form method="post" action="/clients/{{ client.id }}/documents" enctype="multipart/form-data" class="inline-form">
+      <select name="doc_type" required>
+        <option value="existing_will">Existing will</option>
+        <option value="existing_trust">Existing trust</option>
+        <option value="financial_statement">Financial statement</option>
+        <option value="other">Other</option>
+      </select>
+      <input type="file" name="file" accept=".pdf,.txt" required />
+      <button type="submit">Upload &amp; parse</button>
+    </form>
+  </details>
+</section>
+
+<section class="card" id="drafts">
+  <h2>Drafts</h2>
+  {% if client.drafts %}
+  <table class="data-table">
+    <thead><tr><th>Document</th><th>Status</th><th>Version</th><th>Generated</th></tr></thead>
+    <tbody>
+      {% for d in client.drafts %}
+      <tr class="clickable-row" onclick="window.location='/drafts/{{ d.id }}'">
+        <td>{{ d.doc_type.value }}</td>
+        <td><span class="badge badge-{{ d.status.value }}">{{ d.status.value }}</span></td>
+        <td>v{{ d.version }}</td>
+        <td>{{ d.generated_at.strftime('%Y-%m-%d') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty-state">No drafts generated yet.</p>
+  {% endif %}
+  <details><summary>+ Generate draft</summary>
+    <form method="post" action="/clients/{{ client.id }}/drafts" class="inline-form">
+      <select name="doc_type" required>
+        <option value="will">Last Will and Testament</option>
+        <option value="poa_financial">Financial Power of Attorney</option>
+        <option value="poa_healthcare">Healthcare Power of Attorney</option>
+        <option value="hipaa_authorization">HIPAA Authorization</option>
+      </select>
+      <button type="submit">Generate first draft</button>
+    </form>
+  </details>
+</section>
+
+<section class="card" id="risk-flags">
+  <h2>Risk flags</h2>
+  {% if risk_flags %}
+  <table class="data-table">
+    <thead><tr><th>Source</th><th>Category</th><th>Severity</th><th>Description</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for f in risk_flags %}
+      <tr>
+        <td><a href="{{ '/drafts/' ~ f.source_id if f.source_type == 'draft' else '/documents/' ~ f.source_id }}">{{ f.source_type }} #{{ f.source_id }}</a></td>
+        <td>{{ f.category.value }}</td>
+        <td><span class="badge badge-{{ f.severity.value }}">{{ f.severity.value }}</span></td>
+        <td>{{ f.description }}</td>
+        <td>{{ f.status.value }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty-state">No risk flags recorded yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

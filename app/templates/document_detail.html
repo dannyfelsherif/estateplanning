@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}{{ document.filename }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{{ document.filename }}</h1>
+  <div class="meta">
+    <a href="/clients/{{ document.client_id }}">&larr; back to client</a>
+    &middot; {{ document.doc_type.value | replace('_', ' ') }}
+    &middot; uploaded {{ document.uploaded_at.strftime('%Y-%m-%d') }}
+  </div>
+</div>
+
+<section class="card">
+  <div class="section-header">
+    <h2>Extracted summary</h2>
+    <form method="post" action="/documents/{{ document.id }}/risk-check">
+      <button type="submit">Re-run risk check</button>
+    </form>
+  </div>
+  {% if extracted.get('plain_summary') %}
+    <p>{{ extracted.plain_summary }}</p>
+  {% endif %}
+  {% if extracted.get('parties') %}
+    <h3>Parties</h3>
+    <ul>{% for p in extracted.parties %}<li>{{ p }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if extracted.get('beneficiaries') %}
+    <h3>Beneficiaries mentioned</h3>
+    <ul>{% for b in extracted.beneficiaries %}<li>{{ b.name if b.name is defined else b }} {% if b.share_or_asset is defined %}— {{ b.share_or_asset }}{% endif %}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if extracted.get('clauses_present') %}
+    <h3>Clauses present</h3>
+    <ul>{% for c in extracted.clauses_present %}<li>{{ c }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if extracted.get('potential_issues') %}
+    <h3>Potential issues flagged by AI review</h3>
+    <ul>{% for i in extracted.potential_issues %}<li>{{ i }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if not extracted %}
+    <p class="empty-state">No structured extraction available.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Raw extracted text</h2>
+  <pre class="generated-text">{{ (document.raw_text or 'No text extracted.')[:5000] }}</pre>
+</section>
+
+<section class="card">
+  <h2>Risk flags for this document</h2>
+  {% if risk_flags %}
+  <table class="data-table">
+    <thead><tr><th>Category</th><th>Severity</th><th>Description</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+      {% for f in risk_flags %}
+      <tr>
+        <td>{{ f.category.value }}</td>
+        <td><span class="badge badge-{{ f.severity.value }}">{{ f.severity.value }}</span></td>
+        <td>{{ f.description }}</td>
+        <td>{{ f.status.value }}{% if f.resolution_note %} — {{ f.resolution_note }}{% endif %}</td>
+        <td>
+          {% if f.status.value == 'open' %}
+          <form method="post" action="/risk-flags/{{ f.id }}/resolve" class="inline-form-tiny">
+            <input type="text" name="resolution_note" placeholder="Resolution note" />
+            <button type="submit" {% if user.role.value != 'attorney' %}disabled title="Attorney role required"{% endif %}>Resolve</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty-state">No risk flags for this document.</p>
+  {% endif %}
+</section>
+{% endblock %}

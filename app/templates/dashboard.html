@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Clients{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Clients</h1>
+  <a class="button" href="/clients/new">+ New client</a>
+</div>
+
+{% if clients %}
+<table class="data-table">
+  <thead>
+    <tr><th>Name</th><th>Jurisdiction</th><th>Marital status</th><th>Created</th></tr>
+  </thead>
+  <tbody>
+    {% for c in clients %}
+    <tr onclick="window.location='/clients/{{ c.id }}'" class="clickable-row">
+      <td>{{ c.name }}</td>
+      <td>{{ c.state or '—' }}</td>
+      <td>{{ c.marital_status or '—' }}</td>
+      <td>{{ c.created_at.strftime('%Y-%m-%d') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty-state">No clients yet. <a href="/clients/new">Create your first client</a>.</p>
+{% endif %}
+{% endblock %}

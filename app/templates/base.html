@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}AI Estate Planning Agent{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/clients">AI Estate Planning Agent</a>
+    {% if user %}
+    <nav>
+      <a href="/clients">Clients</a>
+      <a href="/checklist">Security Checklist</a>
+      <span class="user-chip">{{ user.name }} &middot; {{ user.role.value }}</span>
+      <a href="/logout">Log out</a>
+    </nav>
+    {% endif %}
+  </header>
+
+  <div class="disclaimer-banner">
+    Not legal advice. All AI-generated content is a first-pass draft and has
+    no effect until reviewed and approved by a licensed attorney.
+  </div>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
