@@ -49,6 +49,11 @@ Every create/update/approve/finalize action is written to an append-only
   two roles (`attorney`, `paralegal`). Approval/finalization actions are
   gated to `attorney`.
 
+## Deploying
+
+See [`DEPLOY.md`](DEPLOY.md) for a one-click Render deployment using the
+included `render.yaml` Blueprint.
+
 ## Getting started
 
 ```bash
